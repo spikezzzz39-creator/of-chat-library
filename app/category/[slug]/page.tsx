@@ -6,10 +6,10 @@ import { useParams } from "next/navigation";
 const subcategories: Record<string, { title: string; slug: string }[]> = {
   sexting: [
     { title: "💕 Лёгкий флирт", slug: "flirt" },
-    { title: "😏 Дразнение", slug: "teasing" },
-    { title: "✨ Игривая близость", slug: "playful" },
-    { title: "🔥 Усиление внимания", slug: "attention" },
-    { title: "💞 Романтика", slug: "romance" },
+    { title: "👙 Дразнение (разденься детка)", slug: "teasing" },
+    { title: "👄 Открываю ротик, хочу сосать!", slug: "playful" },
+    { title: "💦 Мои трусики мокрые, хочу ласкать!", slug: "attention" },
+    { title: "🍆 Киска-дилдо-крики-сказка", slug: "romance" },
     { title: "💬 Эмоции", slug: "emotion" },
     { title: "🎯 Прогрев", slug: "warming" },
     { title: "⚡ Провокация", slug: "provocation" },
