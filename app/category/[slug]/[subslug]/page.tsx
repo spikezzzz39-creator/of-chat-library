@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase";
 
 export default function Page() {
   const params = useParams();
-
   const slug = params?.slug as string;
   const subslug = params?.subslug as string;
 
@@ -15,7 +14,6 @@ export default function Page() {
   const [ru, setRu] = useState("");
   const [en, setEn] = useState("");
   const [loading, setLoading] = useState(true);
-
   const [toast, setToast] = useState("");
 
   // загрузка
@@ -29,7 +27,9 @@ export default function Page() {
         .eq("category", slug)
         .eq("subcategory", subslug);
 
-      if (!error) setList(data || []);
+      if (!error && data) {
+        setList(data);
+      }
 
       setLoading(false);
     };
@@ -54,7 +54,7 @@ export default function Page() {
       .select();
 
     if (!error && data) {
-      setList([...list, ...data]);
+      setList((prev) => [...prev, ...data]);
     }
 
     setRu("");
@@ -72,20 +72,17 @@ export default function Page() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white p-8">
-
-      <Link href={`/category/${slug}`} className="text-zinc-400">
+      <Link href={`/category/${slug}`} className="text-zinc-400 hover:underline">
         ← Назад
       </Link>
 
       {toast && (
-        <div className="fixed bottom-6 right-6 bg-green-600 px-4 py-2 rounded-xl">
+        <div className="fixed bottom-6 right-6 bg-green-600 px-4 py-2 rounded-xl text-sm">
           {toast}
         </div>
       )}
 
-      <h1 className="text-3xl font-bold my-6">
-        Сценарии
-      </h1>
+      <h1 className="text-3xl font-bold my-6">Сценарии</h1>
 
       {/* ADD */}
       <div className="bg-zinc-900 p-4 rounded-xl mb-6">
@@ -93,19 +90,19 @@ export default function Page() {
           value={ru}
           onChange={(e) => setRu(e.target.value)}
           placeholder="RU текст"
-          className="w-full mb-2 p-2 bg-zinc-800 rounded"
+          className="w-full mb-2 p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
         />
 
         <input
           value={en}
           onChange={(e) => setEn(e.target.value)}
           placeholder="EN текст"
-          className="w-full mb-2 p-2 bg-zinc-800 rounded"
+          className="w-full mb-3 p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
         />
 
         <button
           onClick={add}
-          className="bg-blue-600 px-4 py-2 rounded"
+          className="bg-blue-600 hover:bg-blue-700 px-6 py-2.5 rounded-lg font-medium transition"
         >
           Добавить
         </button>
@@ -113,9 +110,7 @@ export default function Page() {
 
       {/* LIST */}
       <div className="grid gap-3">
-        {loading && (
-          <p className="text-zinc-500">Загрузка...</p>
-        )}
+        {loading && <p className="text-zinc-500">Загрузка...</p>}
 
         {!loading && list.length === 0 && (
           <p className="text-zinc-500">Пока нет сообщений</p>
@@ -124,16 +119,16 @@ export default function Page() {
         {list.map((item) => (
           <div
             key={item.id}
-            className="bg-zinc-900 p-4 rounded-xl flex justify-between"
+            className="bg-zinc-900 p-4 rounded-xl flex justify-between items-start gap-4"
           >
-            <div>
-              <p>{item.ru}</p>
+            <div className="flex-1">
+              <p className="mb-1">{item.ru}</p>
               <p className="text-zinc-500 text-sm">{item.en}</p>
             </div>
 
             <button
               onClick={() => copy(item.en)}
-              className="text-xs bg-zinc-800 px-3 py-1 rounded"
+              className="text-xs bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded-lg transition flex-shrink-0"
             >
               📋 copy
             </button>
