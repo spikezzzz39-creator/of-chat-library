@@ -3,48 +3,51 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-export default function Page({
-  params,
-}: {
-  params: { slug: string; subslug: string };
-}) {
-  const category = params.slug;
-  const subcategory = params.subslug;
+export default function CategoryPage({ params }: { params: { slug: string } }) {
+  const slug = params.slug;
 
   const [messages, setMessages] = useState<any[]>([]);
   const [textRu, setTextRu] = useState("");
   const [textEn, setTextEn] = useState("");
 
-  // 📥 загрузка
-  const load = async () => {
-    const { data } = await supabase
+  // 📥 загрузка (СТАБИЛЬНАЯ ВЕРСИЯ)
+  const loadMessages = async () => {
+    const { data, error } = await supabase
       .from("messages")
       .select("*")
-      .eq("category", category)
-      .eq("subcategory", subcategory)
+      .eq("category", slug)
       .order("id", { ascending: false });
+
+    if (error) {
+      console.log(error);
+      return;
+    }
 
     setMessages(data || []);
   };
 
   useEffect(() => {
-    load();
-  }, [category, subcategory]);
+    loadMessages();
+  }, [slug]);
 
   // ➕ добавление
-  const add = async () => {
+  const addMessage = async () => {
     if (!textRu || !textEn) return;
 
-    await supabase.from("messages").insert({
-      category,
-      subcategory,
+    const { error } = await supabase.from("messages").insert({
+      category: slug,
       text_ru: textRu,
       text_en: textEn,
     });
 
+    if (error) {
+      console.log(error);
+      return;
+    }
+
     setTextRu("");
     setTextEn("");
-    load();
+    loadMessages();
   };
 
   // 📋 копирование EN
@@ -55,8 +58,8 @@ export default function Page({
   return (
     <main className="min-h-screen bg-zinc-950 text-white p-6">
 
-      <h1 className="text-2xl font-bold mb-2">
-        {category} / {subcategory}
+      <h1 className="text-3xl font-bold mb-6">
+        Категория: {slug}
       </h1>
 
       {/* INPUT */}
@@ -76,7 +79,7 @@ export default function Page({
         />
 
         <button
-          onClick={add}
+          onClick={addMessage}
           className="bg-green-600 px-4 py-2 rounded"
         >
           Добавить
