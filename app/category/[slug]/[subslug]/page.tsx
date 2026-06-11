@@ -1,116 +1,144 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
-export default function CategoryPage({ params }: { params: { slug: string } }) {
-  const slug = params.slug;
+export default function Page() {
+  const params = useParams();
 
-  const [messages, setMessages] = useState<any[]>([]);
-  const [textRu, setTextRu] = useState("");
-  const [textEn, setTextEn] = useState("");
+  const slug = params?.slug as string;
+  const subslug = params?.subslug as string;
 
-  // 📥 загрузка (СТАБИЛЬНАЯ ВЕРСИЯ)
-  const loadMessages = async () => {
+  const [list, setList] = useState<any[]>([]);
+  const [ru, setRu] = useState("");
+  const [en, setEn] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const [toast, setToast] = useState("");
+
+  // загрузка
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("category", slug)
+        .eq("subcategory", subslug);
+
+      if (!error) setList(data || []);
+
+      setLoading(false);
+    };
+
+    if (slug && subslug) load();
+  }, [slug, subslug]);
+
+  // добавление
+  const add = async () => {
+    if (!ru || !en) return;
+
     const { data, error } = await supabase
       .from("messages")
-      .select("*")
-      .eq("category", slug)
-      .order("id", { ascending: false });
+      .insert([
+        {
+          category: slug,
+          subcategory: subslug,
+          ru,
+          en,
+        },
+      ])
+      .select();
 
-    if (error) {
-      console.log(error);
-      return;
+    if (!error && data) {
+      setList([...list, ...data]);
     }
 
-    setMessages(data || []);
+    setRu("");
+    setEn("");
+
+    setToast("Добавлено ✅");
+    setTimeout(() => setToast(""), 1200);
   };
 
-  useEffect(() => {
-    loadMessages();
-  }, [slug]);
-
-  // ➕ добавление
-  const addMessage = async () => {
-    if (!textRu || !textEn) return;
-
-    const { error } = await supabase.from("messages").insert({
-      category: slug,
-      text_ru: textRu,
-      text_en: textEn,
-    });
-
-    if (error) {
-      console.log(error);
-      return;
-    }
-
-    setTextRu("");
-    setTextEn("");
-    loadMessages();
-  };
-
-  // 📋 копирование EN
   const copy = (text: string) => {
     navigator.clipboard.writeText(text);
+    setToast("Скопировано ✅");
+    setTimeout(() => setToast(""), 1200);
   };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white p-6">
+    <main className="min-h-screen bg-zinc-950 text-white p-8">
 
-      <h1 className="text-3xl font-bold mb-6">
-        Категория: {slug}
+      <Link href={`/category/${slug}`} className="text-zinc-400">
+        ← Назад
+      </Link>
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 bg-green-600 px-4 py-2 rounded-xl">
+          {toast}
+        </div>
+      )}
+
+      <h1 className="text-3xl font-bold my-6">
+        Сценарии
       </h1>
 
-      {/* INPUT */}
-      <div className="mb-6 space-y-2">
+      {/* ADD */}
+      <div className="bg-zinc-900 p-4 rounded-xl mb-6">
         <input
-          className="w-full p-2 bg-zinc-800 rounded"
-          placeholder="Русский текст"
-          value={textRu}
-          onChange={(e) => setTextRu(e.target.value)}
+          value={ru}
+          onChange={(e) => setRu(e.target.value)}
+          placeholder="RU текст"
+          className="w-full mb-2 p-2 bg-zinc-800 rounded"
         />
 
         <input
-          className="w-full p-2 bg-zinc-800 rounded"
-          placeholder="English text"
-          value={textEn}
-          onChange={(e) => setTextEn(e.target.value)}
+          value={en}
+          onChange={(e) => setEn(e.target.value)}
+          placeholder="EN текст"
+          className="w-full mb-2 p-2 bg-zinc-800 rounded"
         />
 
         <button
-          onClick={addMessage}
-          className="bg-green-600 px-4 py-2 rounded"
+          onClick={add}
+          className="bg-blue-600 px-4 py-2 rounded"
         >
           Добавить
         </button>
       </div>
 
       {/* LIST */}
-      <div className="space-y-4">
-
-        {messages.length === 0 && (
-          <p className="text-gray-400">Пока нет сообщений</p>
+      <div className="grid gap-3">
+        {loading && (
+          <p className="text-zinc-500">Загрузка...</p>
         )}
 
-        {messages.map((msg) => (
-          <div key={msg.id} className="bg-zinc-900 p-4 rounded flex justify-between">
+        {!loading && list.length === 0 && (
+          <p className="text-zinc-500">Пока нет сообщений</p>
+        )}
 
+        {list.map((item) => (
+          <div
+            key={item.id}
+            className="bg-zinc-900 p-4 rounded-xl flex justify-between"
+          >
             <div>
-              <p>{msg.text_ru}</p>
-              <p className="text-gray-400">{msg.text_en}</p>
+              <p>{item.ru}</p>
+              <p className="text-zinc-500 text-sm">{item.en}</p>
             </div>
 
             <button
-              onClick={() => copy(msg.text_en)}
+              onClick={() => copy(item.en)}
               className="text-xs bg-zinc-800 px-3 py-1 rounded"
             >
-              copy
+              📋 copy
             </button>
-
           </div>
         ))}
-
       </div>
     </main>
   );
