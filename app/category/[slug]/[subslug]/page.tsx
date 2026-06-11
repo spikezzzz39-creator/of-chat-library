@@ -2,68 +2,55 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 export default function Page() {
   const params = useParams();
 
   const slug = params?.slug as string;
-  const subslug = params?.subslug as string | undefined;
-
-  const isSextingMode = !!subslug; 
-  // 👉 если есть subslug = как sexting
+  const subslug = params?.subslug as string;
 
   const [list, setList] = useState<any[]>([]);
   const [ru, setRu] = useState("");
   const [en, setEn] = useState("");
-
   const [loading, setLoading] = useState(true);
 
   const [toast, setToast] = useState("");
 
-  // 📥 загрузка
+  // загрузка
   useEffect(() => {
     const load = async () => {
       setLoading(true);
 
-      let query = supabase
+      const { data, error } = await supabase
         .from("messages")
         .select("*")
-        .eq("category", slug);
-
-      // 👉 ТОЛЬКО sexting режим использует subcategory
-      if (isSextingMode) {
-        query = query.eq("subcategory", subslug);
-      }
-
-      const { data, error } = await query;
+        .eq("category", slug)
+        .eq("subcategory", subslug);
 
       if (!error) setList(data || []);
 
       setLoading(false);
     };
 
-    if (slug) load();
+    if (slug && subslug) load();
   }, [slug, subslug]);
 
-  // ➕ добавление
+  // добавление
   const add = async () => {
     if (!ru || !en) return;
 
-    const payload: any = {
-      category: slug,
-      text_ru: ru,
-      text_en: en,
-    };
-
-    // 👉 только sexting пишет subcategory
-    if (isSextingMode) {
-      payload.subcategory = subslug;
-    }
-
     const { data, error } = await supabase
       .from("messages")
-      .insert([payload])
+      .insert([
+        {
+          category: slug,
+          subcategory: subslug,
+          ru,
+          en,
+        },
+      ])
       .select();
 
     if (!error && data) {
@@ -86,6 +73,10 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-zinc-950 text-white p-8">
 
+      <Link href={`/category/${slug}`} className="text-zinc-400">
+        ← Назад
+      </Link>
+
       {toast && (
         <div className="fixed bottom-6 right-6 bg-green-600 px-4 py-2 rounded-xl">
           {toast}
@@ -93,10 +84,10 @@ export default function Page() {
       )}
 
       <h1 className="text-3xl font-bold my-6">
-        {slug} {subslug ? `/ ${subslug}` : ""}
+        Сценарии
       </h1>
 
-      {/* INPUT (ОДИНАКОВЫЙ ДЛЯ ВСЕХ) */}
+      {/* ADD */}
       <div className="bg-zinc-900 p-4 rounded-xl mb-6">
         <input
           value={ru}
@@ -136,12 +127,12 @@ export default function Page() {
             className="bg-zinc-900 p-4 rounded-xl flex justify-between"
           >
             <div>
-              <p>{item.text_ru}</p>
-              <p className="text-zinc-500 text-sm">{item.text_en}</p>
+              <p>{item.ru}</p>
+              <p className="text-zinc-500 text-sm">{item.en}</p>
             </div>
 
             <button
-              onClick={() => copy(item.text_en)}
+              onClick={() => copy(item.en)}
               className="text-xs bg-zinc-800 px-3 py-1 rounded"
             >
               📋 copy
