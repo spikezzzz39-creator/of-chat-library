@@ -7,8 +7,11 @@ import { supabase } from "@/lib/supabase";
 
 export default function Page() {
   const params = useParams();
+
   const slug = params?.slug as string;
-  const subslug = params?.subslug as string;
+  const subslug = params?.subslug as string | undefined;
+
+  const isSubcategoryMode = Boolean(subslug);
 
   const [list, setList] = useState<any[]>([]);
   const [ru, setRu] = useState("");
@@ -16,41 +19,48 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
 
-  // загрузка
+  // 📥 загрузка
   useEffect(() => {
     const load = async () => {
       setLoading(true);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("messages")
         .select("*")
-        .eq("category", slug)
-        .eq("subcategory", subslug);
+        .eq("category", slug);
 
-      if (!error && data) {
-        setList(data);
+      // 🔥 ВАЖНО: subcategory только если есть subslug
+      if (isSubcategoryMode) {
+        query = query.eq("subcategory", subslug);
       }
 
+      const { data } = await query;
+
+      setList(data || []);
       setLoading(false);
     };
 
-    if (slug && subslug) load();
+    if (slug) load();
   }, [slug, subslug]);
 
-  // добавление
+  // ➕ добавление
   const add = async () => {
     if (!ru || !en) return;
 
+    const payload: any = {
+      category: slug,
+      ru,
+      en,
+    };
+
+    // 🔥 только sexting пишет subcategory
+    if (isSubcategoryMode) {
+      payload.subcategory = subslug;
+    }
+
     const { data, error } = await supabase
       .from("messages")
-      .insert([
-        {
-          category: slug,
-          subcategory: subslug,
-          ru,
-          en,
-        },
-      ])
+      .insert([payload])
       .select();
 
     if (!error && data) {
@@ -72,6 +82,7 @@ export default function Page() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white p-8">
+
       <Link href={`/category/${slug}`} className="text-zinc-400 hover:underline">
         ← Назад
       </Link>
@@ -82,27 +93,29 @@ export default function Page() {
         </div>
       )}
 
-      <h1 className="text-3xl font-bold my-6">Сценарии</h1>
+      <h1 className="text-3xl font-bold my-6">
+        {slug}{subslug ? ` / ${subslug}` : ""}
+      </h1>
 
-      {/* ADD */}
+      {/* INPUT */}
       <div className="bg-zinc-900 p-4 rounded-xl mb-6">
         <input
           value={ru}
           onChange={(e) => setRu(e.target.value)}
           placeholder="RU текст"
-          className="w-full mb-2 p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          className="w-full mb-2 p-3 bg-zinc-800 rounded-lg"
         />
 
         <input
           value={en}
           onChange={(e) => setEn(e.target.value)}
           placeholder="EN текст"
-          className="w-full mb-3 p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          className="w-full mb-3 p-3 bg-zinc-800 rounded-lg"
         />
 
         <button
           onClick={add}
-          className="bg-blue-600 hover:bg-blue-700 px-6 py-2.5 rounded-lg font-medium transition"
+          className="bg-blue-600 px-6 py-2 rounded-lg"
         >
           Добавить
         </button>
@@ -119,16 +132,16 @@ export default function Page() {
         {list.map((item) => (
           <div
             key={item.id}
-            className="bg-zinc-900 p-4 rounded-xl flex justify-between items-start gap-4"
+            className="bg-zinc-900 p-4 rounded-xl flex justify-between"
           >
-            <div className="flex-1">
-              <p className="mb-1">{item.ru}</p>
+            <div>
+              <p>{item.ru}</p>
               <p className="text-zinc-500 text-sm">{item.en}</p>
             </div>
 
             <button
               onClick={() => copy(item.en)}
-              className="text-xs bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded-lg transition flex-shrink-0"
+              className="text-xs bg-zinc-800 px-3 py-1 rounded"
             >
               📋 copy
             </button>
